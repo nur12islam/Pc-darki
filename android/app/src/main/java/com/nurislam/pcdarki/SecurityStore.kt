@@ -21,14 +21,19 @@ class SecurityStore(context: Context) {
         val cleanName = username.trim()
         require(cleanName.length in 1..32) { "Username must be 1–32 characters." }
         require(pin.length >= 4) { "PIN must be at least 4 characters." }
+        saveCredentials(cleanName, pin)
+    }
 
-        val salt = ByteArray(16).also(SecureRandom()::nextBytes)
-        val hash = derive(pin, salt)
-        prefs.edit()
-            .putString("username", cleanName)
-            .putString("pin_salt", Base64.encodeToString(salt, Base64.NO_WRAP))
-            .putString("pin_hash", Base64.encodeToString(hash, Base64.NO_WRAP))
-            .apply()
+    fun updateUsername(username: String) {
+        val cleanName = username.trim()
+        require(cleanName.length in 1..32) { "Username must be 1–32 characters." }
+        prefs.edit().putString("username", cleanName).apply()
+    }
+
+    fun changePin(currentPin: String, newPin: String): Boolean {
+        if (!verifyPin(currentPin) || newPin.length < 4) return false
+        saveCredentials(username, newPin)
+        return true
     }
 
     fun verifyPin(pin: String): Boolean {
@@ -41,6 +46,16 @@ class SecurityStore(context: Context) {
         } catch (_: IllegalArgumentException) {
             false
         }
+    }
+
+    private fun saveCredentials(name: String, pin: String) {
+        val salt = ByteArray(16).also(SecureRandom()::nextBytes)
+        val hash = derive(pin, salt)
+        prefs.edit()
+            .putString("username", name)
+            .putString("pin_salt", Base64.encodeToString(salt, Base64.NO_WRAP))
+            .putString("pin_hash", Base64.encodeToString(hash, Base64.NO_WRAP))
+            .apply()
     }
 
     private fun derive(pin: String, salt: ByteArray): ByteArray {
