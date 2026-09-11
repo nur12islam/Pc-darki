@@ -3,7 +3,6 @@ package com.nurislam.pcdarki
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.util.Base64
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -28,78 +27,107 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.security.MessageDigest
-import java.security.SecureRandom
 import java.text.SimpleDateFormat
 import java.util.*
-import javax.crypto.SecretKeyFactory
-import javax.crypto.spec.PBEKeySpec
 import kotlin.math.roundToInt
 
 data class DesktopWindow(val id: Int, val title: String, val minimized: Boolean = false, val x: Float = 0f, val y: Float = 0f)
 
 class MainActivity : ComponentActivity() {
+    private val security by lazy { SecurityStore(this) }
     private var selectedFile by mutableStateOf<String?>(null)
-    private val prefs by lazy { getSharedPreferences("pc_darki_security", MODE_PRIVATE) }
     private val openDocument = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { selectedFile = it.toString() } }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            var unlocked by remember { mutableStateOf(prefs.getBoolean("unlocked", false)) }
-            if (unlocked) PCDarkiDesktop(selectedFile) { openDocument.launch(arrayOf("*/*")) }
-            else LoginScreen(
-                setupRequired = !prefs.contains("pin_hash"),
-                onUnlocked = { unlocked = true; prefs.edit().putBoolean("unlocked", true).apply() },
-                onSetPin = { pin -> savePin(pin); unlocked = true; prefs.edit().putBoolean("unlocked", true).apply() },
-                onBiometric = { authenticateBiometric { unlocked = true; prefs.edit().putBoolean("unlocked", true).apply() } }
-            )
+            var unlocked by remember { mutableStateOf(false) }
+            if (unlocked) {
+                PCDarkiDesktop(selectedFile) { openDocument.launch(arrayOf("*/*")) }
+            } else {
+                PCDarkiAccountLogin(
+                    security = security,
+                    onUnlocked = { unlocked = true },
+                    onBiometric = { authenticateBiometric { unlocked = true } }
+                )
+            }
         }
     }
 
-    override fun onStop() { super.onStop(); prefs.edit().putBoolean("unlocked", false).apply() }
+    override fun onStop() {
+        super.onStop()
+    }
 
-    private fun savePin(pin: String) {
-        val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
-        prefs.edit().putString("pin_salt", Base64.encodeToString(salt, Base64.NO_WRAP)).putString("pin_hash", Base64.encodeToString(pbkdf2(pin, salt), Base64.NO_WRAP)).apply()
-    }
-    private fun pbkdf2(pin: String, salt: ByteArray): ByteArray {
-        val spec = PBEKeySpec(pin.toCharArray(), salt, 120_000, 256)
-        return try { SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded } finally { spec.clearPassword() }
-    }
     private fun authenticateBiometric(onSuccess: () -> Unit) {
-        val manager = BiometricManager.from(this)
-        if (manager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.BIOMETRIC_WEAK) != BiometricManager.BIOMETRIC_SUCCESS) return
-        BiometricPrompt(this, mainExecutor, object : BiometricPrompt.AuthenticationCallback() { override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) { onSuccess() } }).authenticate(
-            BiometricPrompt.PromptInfo.Builder().setTitle("Unlock PC-DARKI").setSubtitle("Use your device biometric").setNegativeButtonText("Use PIN").build()
+        val authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.BIOMETRIC_WEAK
+        if (BiometricManager.from(this).canAuthenticate(authenticators) != BiometricManager.BIOMETRIC_SUCCESS) return
+        BiometricPrompt(this, mainExecutor, object : BiometricPrompt.AuthenticationCallback() {
+            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) = onSuccess()
+        }).authenticate(
+            BiometricPrompt.PromptInfo.Builder()
+                .setTitle("Unlock PC-DARKI")
+                .setSubtitle("Use your device biometric")
+                .setNegativeButtonText("Use PIN")
+                .build()
         )
     }
 }
 
 @Composable
-private fun LoginScreen(setupRequired: Boolean, onUnlocked: () -> Unit, onSetPin: (String) -> Unit, onBiometric: () -> Unit) {
-    var pin by remember { mutableStateOf("") }; var confirm by remember { mutableStateOf("") }; var error by remember { mutableStateOf<String?>(null) }
+private fun PCDarkiAccountLogin(security: SecurityStore, onUnlocked: () -> Unit, onBiometric: () -> Unit) {
+    val setupRequired = !security.isConfigured
+    var username by remember { mutableStateOf("") }
+    var pin by remember { mutableStateOf("") }
+    var confirm by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
-    val biometricAvailable = remember { BiometricManager.from(context).canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS }
-    MaterialTheme { Box(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(Color(0xFF080C16), Color(0xFF21183D), Color(0xFF0B1020)))), Alignment.Center) {
-        Surface(Modifier.width(390.dp), RoundedCornerShape(28.dp), Color(0xEE171B27), tonalElevation = 10.dp) { Column(Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(if (setupRequired) Icons.Default.PersonAdd else Icons.Default.Lock, null, Modifier.size(58.dp), tint = Color.White)
-            Spacer(Modifier.height(14.dp)); Text(if (setupRequired) "Set up PC-DARKI" else "Unlock PC-DARKI", Color.White, 26.sp); Text(if (setupRequired) "Create your local PIN" else "Local desktop security", Color.White.copy(.6f), 13.sp); Spacer(Modifier.height(22.dp))
-            OutlinedTextField(pin, { pin = it; error = null }, label = { Text("PIN") }, singleLine = true, visualTransformation = PasswordVisualTransformation())
-            if (setupRequired) { Spacer(Modifier.height(10.dp)); OutlinedTextField(confirm, { confirm = it; error = null }, label = { Text("Confirm PIN") }, singleLine = true, visualTransformation = PasswordVisualTransformation()) }
-            Spacer(Modifier.height(16.dp)); Button(onClick = { when { pin.length < 4 -> error = "PIN must be at least 4 characters."; setupRequired && pin != confirm -> error = "PINs do not match."; setupRequired -> onSetPin(pin); verifyLoginPin(pin, context) -> onUnlocked(); else -> error = "Incorrect PIN." } }, Modifier.fillMaxWidth()) { Text(if (setupRequired) "Create PIN" else "Unlock") }
-            if (!setupRequired && biometricAvailable) { Spacer(Modifier.height(10.dp)); OutlinedButton(onClick = onBiometric, Modifier.fillMaxWidth()) { Icon(Icons.Default.Fingerprint, null); Spacer(Modifier.width(8.dp)); Text("Use biometrics") } }
-            error?.let { Spacer(Modifier.height(10.dp)); Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
-        } }
-    } }
-}
+    val authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.BIOMETRIC_WEAK
+    val biometricAvailable = remember { BiometricManager.from(context).canAuthenticate(authenticators) == BiometricManager.BIOMETRIC_SUCCESS }
 
-private fun verifyLoginPin(pin: String, context: android.content.Context): Boolean {
-    val prefs = context.getSharedPreferences("pc_darki_security", android.content.Context.MODE_PRIVATE)
-    val saltText = prefs.getString("pin_salt", null) ?: return false; val expected = prefs.getString("pin_hash", null) ?: return false
-    val spec = PBEKeySpec(pin.toCharArray(), Base64.decode(saltText, Base64.NO_WRAP), 120_000, 256)
-    val actual = try { SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded } finally { spec.clearPassword() }
-    return MessageDigest.isEqual(actual, Base64.decode(expected, Base64.NO_WRAP))
+    MaterialTheme {
+        Box(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(Color(0xFF080C16), Color(0xFF21183D), Color(0xFF0B1020)))), Alignment.Center) {
+            Surface(Modifier.width(390.dp), RoundedCornerShape(28.dp), color = Color(0xEE171B27), tonalElevation = 10.dp) {
+                Column(Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(if (setupRequired) Icons.Default.PersonAdd else Icons.Default.Lock, null, Modifier.size(58.dp), tint = Color.White)
+                    Spacer(Modifier.height(14.dp))
+                    Text(if (setupRequired) "Set up PC-DARKI" else "Unlock PC-DARKI", color = Color.White, fontSize = 26.sp)
+                    Text(if (setupRequired) "Create your local account" else "Local desktop security", color = Color.White.copy(.6f), fontSize = 13.sp)
+                    Spacer(Modifier.height(22.dp))
+                    if (setupRequired) {
+                        OutlinedTextField(username, { username = it; error = null }, label = { Text("Username") }, singleLine = true)
+                        Spacer(Modifier.height(10.dp))
+                    } else {
+                        Text(security.username, color = Color.White, fontSize = 18.sp)
+                        Spacer(Modifier.height(10.dp))
+                    }
+                    OutlinedTextField(pin, { pin = it; error = null }, label = { Text("PIN") }, singleLine = true, visualTransformation = PasswordVisualTransformation())
+                    if (setupRequired) {
+                        Spacer(Modifier.height(10.dp))
+                        OutlinedTextField(confirm, { confirm = it; error = null }, label = { Text("Confirm PIN") }, singleLine = true, visualTransformation = PasswordVisualTransformation())
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    Button(onClick = {
+                        when {
+                            setupRequired && username.trim().isEmpty() -> error = "Enter a username."
+                            setupRequired && username.trim().length > 32 -> error = "Username must be 32 characters or fewer."
+                            pin.length < 4 -> error = "PIN must be at least 4 characters."
+                            setupRequired && pin != confirm -> error = "PINs do not match."
+                            setupRequired -> { security.createAccount(username.trim(), pin); onUnlocked() }
+                            security.verifyPin(pin) -> onUnlocked()
+                            else -> error = "Incorrect PIN."
+                        }
+                    }, Modifier.fillMaxWidth()) { Text(if (setupRequired) "Create account" else "Unlock") }
+                    if (!setupRequired && biometricAvailable) {
+                        Spacer(Modifier.height(10.dp))
+                        OutlinedButton(onClick = onBiometric, Modifier.fillMaxWidth()) {
+                            Icon(Icons.Default.Fingerprint, null); Spacer(Modifier.width(8.dp)); Text("Use biometrics")
+                        }
+                    }
+                    error?.let { Spacer(Modifier.height(10.dp)); Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
+                }
+            }
+        }
+    }
 }
 
 @Composable
