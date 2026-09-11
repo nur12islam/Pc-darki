@@ -2,7 +2,7 @@ name: PC-DARKI Android Build
 
 on:
   push:
-    branches: ["app-v0.1"]
+    branches: ["app-v0.1", "app-v0.2-file-manager"]
   workflow_dispatch:
 
 jobs:
