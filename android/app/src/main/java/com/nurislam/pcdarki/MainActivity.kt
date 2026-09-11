@@ -12,7 +12,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -96,10 +98,139 @@ fun PCDarkiDesktop(security: SecurityStore, selectedFile: String?, onOpenFile: (
 @Composable private fun AppWindow(window: DesktopWindow, active: Boolean, selectedFile: String?, onFocus: () -> Unit, onClose: () -> Unit, onMinimize: () -> Unit, onOpenFile: () -> Unit, security: SecurityStore, onMove: (Float, Float) -> Unit) { Box(Modifier.fillMaxSize().offset { IntOffset(window.x.roundToInt(), window.y.roundToInt()) }, Alignment.Center) { Surface(Modifier.fillMaxWidth(.72f).fillMaxSize(.68f).clickable(onClick = onFocus), RoundedCornerShape(18.dp), if (active) Color(0xF21A1D26) else Color(0xE8161922), tonalElevation = if (active) 12.dp else 4.dp) { Column { Row(Modifier.fillMaxWidth().height(52.dp).pointerInput(window.id) { detectDragGestures { change, amount -> change.consume(); onMove(amount.x, amount.y) } }.padding(horizontal = 16.dp), Alignment.CenterVertically, Arrangement.SpaceBetween) { Text(window.title, Color.White, 16.sp); Row { Text("—", Color.White.copy(.8f), Modifier.clickable(onClick = onMinimize).padding(horizontal = 10.dp)); Text("✕", Color.White, Modifier.clickable(onClick = onClose).padding(horizontal = 6.dp)) } }; WindowContent(window.title, selectedFile, onOpenFile, security) } } } }
 @Composable private fun WindowContent(title: String, selectedFile: String?, onOpenFile: () -> Unit, security: SecurityStore) { Box(Modifier.fillMaxSize().padding(28.dp), Alignment.Center) { when (title) { "Files" -> Column(horizontalAlignment = Alignment.CenterHorizontally) { Icon(Icons.Default.Folder, null, Modifier.size(52.dp), tint = Color.White); Spacer(Modifier.height(12.dp)); Text("PC-DARKI File Manager", Color.White, 20.sp); Spacer(Modifier.height(18.dp)); Button(onClick = onOpenFile) { Text("Open file") }; Spacer(Modifier.height(14.dp)); Text(selectedFile?.let { "Selected: $it" } ?: "Use Android's document picker to access your storage.", Color.White.copy(.65f), 13.sp) }; "Settings" -> AccountSettings(security); "Text Editor" -> Text("Text Editor — next module", Color.White.copy(.7f), 18.sp); "Terminal" -> Text("Terminal — native command backend coming next", Color.White.copy(.7f), 18.sp); else -> Text("$title — PC-DARKI v0.1", Color.White.copy(.65f), 18.sp) } } }
 
-@Composable private fun AccountSettings(security: SecurityStore) {
-    var name by remember(security.username) { mutableStateOf(security.username) }; var oldPin by remember { mutableStateOf("") }; var newPin by remember { mutableStateOf("") }; var status by remember { mutableStateOf<String?>(null) }
-    Column(Modifier.fillMaxSize().padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("Accounts & Security", color = Color.White, fontSize = 22.sp); Spacer(Modifier.height(18.dp)); Text("Username", color = Color.White.copy(.65f), fontSize = 12.sp); OutlinedTextField(name, { name = it }, singleLine = true); Spacer(Modifier.height(10.dp)); Button(onClick = { try { security.updateUsername(name); status = "Username updated." } catch (e: IllegalArgumentException) { status = e.message } }) { Text("Save username") }
-        Spacer(Modifier.height(24.dp)); Text("Change PIN", color = Color.White, fontSize = 18.sp); Spacer(Modifier.height(8.dp)); OutlinedTextField(oldPin, { oldPin = it }, label = { Text("Current PIN") }, singleLine = true, visualTransformation = PasswordVisualTransformation()); Spacer(Modifier.height(8.dp)); OutlinedTextField(newPin, { newPin = it }, label = { Text("New PIN") }, singleLine = true, visualTransformation = PasswordVisualTransformation()); Spacer(Modifier.height(10.dp)); Button(onClick = { status = if (security.changePin(oldPin, newPin)) { oldPin = ""; newPin = ""; "PIN changed successfully." } else "Current PIN is incorrect or new PIN is too short." }) { Text("Change PIN") }; status?.let { Spacer(Modifier.height(12.dp)); Text(it, color = Color.White.copy(.8f), fontSize = 12.sp) }
+@Composable
+private fun AccountSettings(security: SecurityStore) {
+    var section by remember { mutableStateOf(SettingsSection.ACCOUNT) }
+    Row(Modifier.fillMaxSize().padding(14.dp)) {
+        Surface(Modifier.width(190.dp).fillMaxHeight(), RoundedCornerShape(16.dp), Color(0xFF141821)) {
+            Column(Modifier.padding(10.dp)) {
+                Text("Settings", color = Color.White, fontSize = 22.sp, modifier = Modifier.padding(12.dp))
+                SettingsSection.entries.forEach { item ->
+                    val selected = item == section
+                    Surface(
+                        Modifier.fillMaxWidth().clickable { section = item },
+                        RoundedCornerShape(10.dp),
+                        if (selected) Color(0xFF39304F) else Color.Transparent
+                    ) {
+                        Row(Modifier.padding(horizontal = 12.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(when (item) { SettingsSection.ACCOUNT -> Icons.Default.Person; SettingsSection.APPEARANCE -> Icons.Default.Palette; SettingsSection.DISPLAY -> Icons.Default.DisplaySettings; SettingsSection.ABOUT -> Icons.Default.Info }, null, Modifier.size(20.dp), tint = Color.White.copy(if (selected) .95f else .65f))
+                            Spacer(Modifier.width(10.dp)); Text(item.title, color = Color.White.copy(if (selected) 1f else .7f), fontSize = 13.sp)
+                        }
+                    }
+                    Spacer(Modifier.height(4.dp))
+                }
+            }
+        }
+        Spacer(Modifier.width(14.dp))
+        Surface(Modifier.weight(1f).fillMaxHeight(), RoundedCornerShape(16.dp), Color(0xFF10141D)) {
+            Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                when (section) {
+                    SettingsSection.ACCOUNT -> AccountSettingsPage(security)
+                    SettingsSection.APPEARANCE -> AppearanceSettingsPage()
+                    SettingsSection.DISPLAY -> DisplaySettingsPage()
+                    SettingsSection.ABOUT -> AboutSettingsPage()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsHeader(title: String, subtitle: String) {
+    Column(Modifier.fillMaxWidth().padding(24.dp, 22.dp, 24.dp, 10.dp)) {
+        Text(title, color = Color.White, fontSize = 24.sp)
+        Spacer(Modifier.height(4.dp))
+        Text(subtitle, color = Color.White.copy(.55f), fontSize = 12.sp)
+    }
+}
+
+@Composable
+private fun AccountSettingsPage(security: SecurityStore) {
+    var name by remember(security.username) { mutableStateOf(security.username) }
+    var oldPin by remember { mutableStateOf("") }
+    var newPin by remember { mutableStateOf("") }
+    var status by remember { mutableStateOf<String?>(null) }
+    Column(Modifier.fillMaxWidth()) {
+        SettingsHeader("Account", "Manage your local PC-DARKI account and security.")
+        Column(Modifier.padding(24.dp)) {
+            Text("Profile", color = Color.White, fontSize = 17.sp)
+            Spacer(Modifier.height(10.dp))
+            OutlinedTextField(name, { name = it }, label = { Text("Username") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(10.dp))
+            Button(onClick = { try { security.updateUsername(name); status = "Username updated." } catch (e: IllegalArgumentException) { status = e.message } }) { Text("Save username") }
+            Spacer(Modifier.height(26.dp))
+            HorizontalDivider(color = Color.White.copy(.08f))
+            Spacer(Modifier.height(22.dp))
+            Text("Security", color = Color.White, fontSize = 17.sp)
+            Spacer(Modifier.height(10.dp))
+            OutlinedTextField(oldPin, { oldPin = it }, label = { Text("Current PIN") }, singleLine = true, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(newPin, { newPin = it }, label = { Text("New PIN") }, singleLine = true, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(10.dp))
+            Button(onClick = { status = if (security.changePin(oldPin, newPin)) { oldPin = ""; newPin = ""; "PIN changed successfully." } else "Current PIN is incorrect or new PIN is too short." }) { Text("Change PIN") }
+            status?.let { Spacer(Modifier.height(12.dp)); Text(it, color = Color.White.copy(.8f), fontSize = 12.sp) }
+        }
+    }
+}
+
+@Composable
+private fun AppearanceSettingsPage() {
+    var darkMode by remember { mutableStateOf(true) }
+    var animations by remember { mutableStateOf(true) }
+    Column(Modifier.fillMaxWidth()) {
+        SettingsHeader("Appearance", "Customize how the PC-DARKI desktop looks and feels.")
+        Column(Modifier.padding(24.dp)) {
+            SettingsToggle("Dark interface", "Use the dark PC-DARKI visual theme.", darkMode) { darkMode = it }
+            Spacer(Modifier.height(8.dp))
+            SettingsToggle("Window animations", "Enable visual transitions where supported.", animations) { animations = it }
+            Spacer(Modifier.height(18.dp))
+            Text("Accent", color = Color.White, fontSize = 16.sp)
+            Spacer(Modifier.height(8.dp))
+            Text("PC-DARKI Purple", color = Color.White.copy(.7f), fontSize = 13.sp)
+        }
+    }
+}
+
+@Composable
+private fun SettingsToggle(title: String, description: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) { Text(title, color = Color.White, fontSize = 14.sp); Spacer(Modifier.height(3.dp)); Text(description, color = Color.White.copy(.5f), fontSize = 11.sp) }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+@Composable
+private fun DisplaySettingsPage() {
+    var scale by remember { mutableFloatStateOf(1f) }
+    Column(Modifier.fillMaxWidth()) {
+        SettingsHeader("Display", "Desktop display preferences for the current Android device.")
+        Column(Modifier.padding(24.dp)) {
+            Text("Interface scale", color = Color.White, fontSize = 16.sp)
+            Spacer(Modifier.height(4.dp))
+            Text("${(scale * 100).roundToInt()}%", color = Color.White.copy(.6f), fontSize = 12.sp)
+            Slider(value = scale, onValueChange = { scale = it }, valueRange = .8f..1.2f, steps = 3)
+            Spacer(Modifier.height(18.dp))
+            Text("Window mode", color = Color.White, fontSize = 16.sp)
+            Spacer(Modifier.height(6.dp))
+            Text("Fullscreen desktop shell", color = Color.White.copy(.65f), fontSize = 13.sp)
+        }
+    }
+}
+
+@Composable
+private fun AboutSettingsPage() {
+    Column(Modifier.fillMaxWidth()) {
+        SettingsHeader("About PC-DARKI", "Native Android desktop shell prototype.")
+        Column(Modifier.padding(24.dp)) {
+            Text("PC-DARKI", color = Color.White, fontSize = 28.sp)
+            Spacer(Modifier.height(6.dp))
+            Text("Version 0.1", color = Color.White.copy(.6f), fontSize = 13.sp)
+            Spacer(Modifier.height(20.dp))
+            Text("PC-DARKI is being built as a native Android desktop-style environment with touch, mouse and keyboard support.", color = Color.White.copy(.72f), fontSize = 14.sp)
+            Spacer(Modifier.height(20.dp))
+            Text("Current milestone", color = Color.White, fontSize = 16.sp)
+            Spacer(Modifier.height(6.dp))
+            Text("Desktop shell • Start menu • Taskbar • Windows • Local account security • Settings", color = Color.White.copy(.62f), fontSize = 13.sp)
+        }
     }
 }
