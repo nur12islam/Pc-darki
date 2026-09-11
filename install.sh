@@ -9,6 +9,7 @@ HOME_DIR="${HOME:-/data/data/com.termux/files/home}"
 BIN_DIR="$PREFIX/bin"
 DESKTOP_DIR="$HOME_DIR/.local/share/applications"
 BACKUP_DIR="$HOME_DIR/.pc-darki-backup"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 
 printf '\n=== PC-DARKI installer ===\n\n'
 
@@ -19,14 +20,14 @@ fi
 mkdir -p "$BACKUP_DIR" "$DESKTOP_DIR"
 
 if ! command -v termux-x11-preference >/dev/null 2>&1; then
-  echo "[1/7] Enabling Termux:X11 repository..."
+  echo "[1/8] Enabling Termux:X11 repository..."
   pkg install -y x11-repo
 fi
 
-echo "[2/7] Updating packages..."
+echo "[2/8] Updating packages..."
 pkg update -y
 
-echo "[3/7] Installing desktop packages..."
+echo "[3/8] Installing desktop packages..."
 pkg install -y \
   termux-x11-nightly \
   xfce \
@@ -46,7 +47,15 @@ pkg install -y \
   which \
   procps
 
-echo "[4/7] Preparing Android storage..."
+# Optional visual plugins. Missing packages are skipped rather than breaking setup.
+for optional_pkg in xfce4-whiskermenu-plugin xfce4-docklike-plugin papirus-icon-theme; do
+  if apt-cache show "$optional_pkg" >/dev/null 2>&1; then
+    echo "Installing optional package: $optional_pkg"
+    pkg install -y "$optional_pkg" || true
+  fi
+done
+
+echo "[4/8] Preparing Android storage..."
 if [ ! -d "$HOME_DIR/storage" ]; then
   termux-setup-storage || true
 fi
@@ -55,7 +64,7 @@ if [ -d "$HOME_DIR/storage/shared" ]; then
   ln -sfn "$HOME_DIR/storage/shared" "$HOME_DIR/Desktop/Android-Storage"
 fi
 
-echo "[5/7] Configuring Termux:X11..."
+echo "[5/8] Configuring Termux:X11..."
 if command -v termux-x11-preference >/dev/null 2>&1; then
   termux-x11-preference \
     "fullscreen"="true" \
@@ -66,7 +75,7 @@ if command -v termux-x11-preference >/dev/null 2>&1; then
     >/dev/null 2>&1 || true
 fi
 
-echo "[6/7] Installing launchers..."
+echo "[6/8] Installing launchers..."
 cat > "$BIN_DIR/pc" <<'PC_EOF'
 #!/data/data/com.termux/files/usr/bin/bash
 set -u
@@ -122,9 +131,16 @@ EOF
 
 printf '%s\n' "PC-DARKI installed on $(date -u '+%Y-%m-%d %H:%M:%S UTC')" > "$HOME_DIR/.pc-darki-version"
 
-echo "[7/7] Finished."
+echo "[7/8] Applying PC-DARKI modern desktop UI..."
+if [ -x "$SCRIPT_DIR/setup-ui.sh" ] || [ -f "$SCRIPT_DIR/setup-ui.sh" ]; then
+  bash "$SCRIPT_DIR/setup-ui.sh" || echo "UI configuration reported an issue; core installation is still complete."
+fi
+
+echo "[8/8] Finished."
 echo
 echo "Start desktop:   pc"
 echo "Anime command:   Ani <title>"
 echo "Android storage: ~/Desktop/Android-Storage"
+echo
+echo "Re-run this installer any time after pulling updates."
 echo
