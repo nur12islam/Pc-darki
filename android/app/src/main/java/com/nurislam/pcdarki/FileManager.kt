@@ -3,7 +3,9 @@ package com.nurislam.pcdarki
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.ManagedActivityResultLauncher
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,6 +22,24 @@ import androidx.compose.ui.unit.sp
 import androidx.documentfile.provider.DocumentFile
 import java.text.DateFormat
 import java.util.Date
+
+@Composable
+fun PCDarkiFileManagerHost() {
+    var selectedTree by remember { mutableStateOf<Uri?>(null) }
+    val context = LocalContext.current
+    val treeLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        result.data?.data?.let { uri ->
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+            }
+            selectedTree = uri
+        }
+    }
+    PCDarkiFileManager(selectedTree, treeLauncher)
+}
 
 @Composable
 fun PCDarkiFileManager(
