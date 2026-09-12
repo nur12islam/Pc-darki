@@ -24,22 +24,17 @@ import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
 import java.util.*
 
-private data class TrayNotification(val title: String, val message: String, val time: String)
-
 @Composable
 fun PCDarkiSystemTray(onOpenNotifications: () -> Unit = {}) {
     val context = LocalContext.current
     var expanded by remember { mutableStateOf(false) }
     var notificationsOpen by remember { mutableStateOf(false) }
-    var notifications by remember {
-        mutableStateOf(
-            listOf(
-                TrayNotification("PC-DARKI", "Desktop session is ready.", "Now"),
-                TrayNotification("Security", "Local account protection is active.", "Now")
-            )
-        )
-    }
+    val notifications by PCDarkiNotificationBus.notifications.collectAsState()
     val time = remember { mutableStateOf(SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())) }
+
+    LaunchedEffect(context) {
+        PCDarkiNotificationBus.initialize(context)
+    }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -72,6 +67,7 @@ fun PCDarkiSystemTray(onOpenNotifications: () -> Unit = {}) {
                         modifier = Modifier.size(18.dp).clickable {
                             notificationsOpen = true
                             expanded = false
+                            onOpenNotifications()
                         }
                     )
                 }
@@ -97,6 +93,7 @@ fun PCDarkiSystemTray(onOpenNotifications: () -> Unit = {}) {
                     TrayAction("Notifications", "Open PC-DARKI notification center") {
                         notificationsOpen = true
                         expanded = false
+                        onOpenNotifications()
                     }
                     TrayAction("Android Settings", "Open system settings") {
                         context.startActivity(Intent(Settings.ACTION_SETTINGS))
@@ -110,7 +107,8 @@ fun PCDarkiSystemTray(onOpenNotifications: () -> Unit = {}) {
             NotificationCenter(
                 notifications = notifications,
                 onDismiss = { notificationsOpen = false },
-                onClear = { notifications = emptyList() }
+                onClear = { PCDarkiNotificationBus.clear() },
+                onDismissNotification = { PCDarkiNotificationBus.dismiss(it) }
             )
         }
     }
@@ -118,9 +116,10 @@ fun PCDarkiSystemTray(onOpenNotifications: () -> Unit = {}) {
 
 @Composable
 private fun NotificationCenter(
-    notifications: List<TrayNotification>,
+    notifications: List<PCDarkiNotification>,
     onDismiss: () -> Unit,
-    onClear: () -> Unit
+    onClear: () -> Unit,
+    onDismissNotification: (Long) -> Unit
 ) {
     Surface(
         modifier = Modifier.align(Alignment.BottomEnd).offset(y = (-62).dp).width(340.dp).heightIn(max = 430.dp),
@@ -154,13 +153,18 @@ private fun NotificationCenter(
                             shape = RoundedCornerShape(14.dp),
                             color = Color.White.copy(alpha = .06f)
                         ) {
-                            Column(Modifier.padding(12.dp)) {
-                                Row(Modifier.fillMaxWidth()) {
-                                    Text(notification.title, color = Color.White, fontSize = 14.sp, modifier = Modifier.weight(1f))
-                                    Text(notification.time, color = Color.White.copy(alpha = .4f), fontSize = 10.sp)
+                            Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.Top) {
+                                Column(Modifier.weight(1f)) {
+                                    Row(Modifier.fillMaxWidth()) {
+                                        Text(notification.title, color = Color.White, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                                        Text(notification.timeLabel, color = Color.White.copy(alpha = .4f), fontSize = 10.sp)
+                                    }
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(notification.message, color = Color.White.copy(alpha = .62f), fontSize = 11.sp)
                                 }
-                                Spacer(Modifier.height(4.dp))
-                                Text(notification.message, color = Color.White.copy(alpha = .62f), fontSize = 11.sp)
+                                IconButton(onClick = { onDismissNotification(notification.id) }, modifier = Modifier.size(30.dp)) {
+                                    Icon(Icons.Default.Close, "Dismiss", tint = Color.White.copy(alpha = .45f), modifier = Modifier.size(16.dp))
+                                }
                             }
                         }
                     }
