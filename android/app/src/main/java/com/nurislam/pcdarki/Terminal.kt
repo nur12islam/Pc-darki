@@ -24,16 +24,12 @@ fun PCDarkiTerminal() {
     var input by remember { mutableStateOf(TextFieldValue("")) }
     var output by remember { mutableStateOf("PC-DARKI Terminal v0.3\nAndroid shell backend ready.\nType help for built-ins.\n\n") }
     var running by remember { mutableStateOf(false) }
-    var history by remember { mutableStateOf(listOf<String>()) }
-    var historyIndex by remember { mutableIntStateOf(-1) }
     val scroll = rememberScrollState()
     val scope = rememberCoroutineScope()
 
     fun runCommand(raw: String) {
         val command = raw.trim()
         if (command.isEmpty() || running) return
-        history = (history + command).takeLast(50)
-        historyIndex = -1
         input = TextFieldValue("")
         if (command == "clear") { output = ""; return }
         output += "$ $command\n"
@@ -59,7 +55,7 @@ fun PCDarkiTerminal() {
             Text("$ ", color = Color(0xFFB69CFF), fontSize = 14.sp)
             OutlinedTextField(
                 value = input,
-                onValueChange = { input = it; historyIndex = -1 },
+                onValueChange = { input = it },
                 modifier = Modifier.weight(1f).onKeyEvent { event ->
                     if (event.key == Key.Enter) { runCommand(input.text); true } else false
                 },
@@ -79,17 +75,14 @@ private fun executeShell(command: String): String {
         val process = ProcessBuilder("/system/bin/sh", "-c", command)
             .redirectErrorStream(true)
             .start()
-        val finished = withTimeoutOrNull(10_000) {
-            process.inputStream.bufferedReader().use { it.readText() }
-            process.waitFor()
-            true
-        } ?: false
-        if (!finished) {
+        val result = withTimeoutOrNull(10_000) {
+            val text = process.inputStream.bufferedReader().use { it.readText() }
+            val exitCode = process.waitFor()
+            if (text.isBlank()) "(exit $exitCode)" else text.trimEnd()
+        }
+        result ?: run {
             process.destroyForcibly()
             "Process timed out after 10 seconds."
-        } else {
-            val text = process.inputStream.bufferedReader().use { it.readText() }
-            if (text.isBlank()) "(exit ${process.exitValue()})" else text.trimEnd()
         }
     } catch (e: Exception) {
         "Terminal error: ${e.message ?: "unknown error"}"
