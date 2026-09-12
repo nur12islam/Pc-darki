@@ -53,8 +53,7 @@ class MainActivity : FragmentActivity() {
     }
 }
 
-@Composable
-private fun PCDarkiAccountLogin(security: SecurityStore, onUnlocked: () -> Unit, onBiometric: () -> Unit) {
+@Composable private fun PCDarkiAccountLogin(security: SecurityStore, onUnlocked: () -> Unit, onBiometric: () -> Unit) {
     val setupRequired = !security.isConfigured
     var username by remember { mutableStateOf("") }
     var pin by remember { mutableStateOf("") }
@@ -65,25 +64,16 @@ private fun PCDarkiAccountLogin(security: SecurityStore, onUnlocked: () -> Unit,
     val biometricAvailable = remember { BiometricManager.from(context).canAuthenticate(authenticators) == BiometricManager.BIOMETRIC_SUCCESS }
     MaterialTheme {
         Box(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(Color(0xFF080C16), Color(0xFF21183D), Color(0xFF0B1020)))), contentAlignment = Alignment.Center) {
-            Surface(modifier = Modifier.width(390.dp), shape = RoundedCornerShape(28.dp), color = Color(0xEE171B27), tonalElevation = 10.dp) {
+            Surface(Modifier.width(390.dp), shape = RoundedCornerShape(28.dp), color = Color(0xEE171B27), tonalElevation = 10.dp) {
                 Column(Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(if (setupRequired) Icons.Default.PersonAdd else Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(58.dp), tint = Color.White)
-                    Spacer(Modifier.height(14.dp))
-                    Text(if (setupRequired) "Set up PC-DARKI" else "Unlock PC-DARKI", color = Color.White, fontSize = 26.sp)
+                    Icon(if (setupRequired) Icons.Default.PersonAdd else Icons.Default.Lock, null, Modifier.size(58.dp), tint = Color.White)
+                    Spacer(Modifier.height(14.dp)); Text(if (setupRequired) "Set up PC-DARKI" else "Unlock PC-DARKI", color = Color.White, fontSize = 26.sp)
                     Text(if (setupRequired) "Create your local account" else "Local desktop security", color = Color.White.copy(alpha = .6f), fontSize = 13.sp)
                     Spacer(Modifier.height(22.dp))
-                    if (setupRequired) {
-                        OutlinedTextField(username, { username = it; error = null }, label = { Text("Username") }, singleLine = true)
-                        Spacer(Modifier.height(10.dp))
-                    } else {
-                        Text(security.username, color = Color.White, fontSize = 18.sp)
-                        Spacer(Modifier.height(10.dp))
-                    }
+                    if (setupRequired) { OutlinedTextField(username, { username = it; error = null }, label = { Text("Username") }, singleLine = true); Spacer(Modifier.height(10.dp)) }
+                    else { Text(security.username, color = Color.White, fontSize = 18.sp); Spacer(Modifier.height(10.dp)) }
                     OutlinedTextField(pin, { pin = it; error = null }, label = { Text("PIN") }, singleLine = true, visualTransformation = PasswordVisualTransformation())
-                    if (setupRequired) {
-                        Spacer(Modifier.height(10.dp))
-                        OutlinedTextField(confirm, { confirm = it; error = null }, label = { Text("Confirm PIN") }, singleLine = true, visualTransformation = PasswordVisualTransformation())
-                    }
+                    if (setupRequired) { Spacer(Modifier.height(10.dp)); OutlinedTextField(confirm, { confirm = it; error = null }, label = { Text("Confirm PIN") }, singleLine = true, visualTransformation = PasswordVisualTransformation()) }
                     Spacer(Modifier.height(16.dp))
                     Button(onClick = {
                         when {
@@ -95,15 +85,8 @@ private fun PCDarkiAccountLogin(security: SecurityStore, onUnlocked: () -> Unit,
                             security.verifyPin(pin) -> onUnlocked()
                             else -> error = "Incorrect PIN."
                         }
-                    }, modifier = Modifier.fillMaxWidth()) { Text(if (setupRequired) "Create account" else "Unlock") }
-                    if (!setupRequired && biometricAvailable) {
-                        Spacer(Modifier.height(10.dp))
-                        OutlinedButton(onClick = onBiometric, modifier = Modifier.fillMaxWidth()) {
-                            Icon(Icons.Default.Fingerprint, contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Use biometrics")
-                        }
-                    }
+                    }, Modifier.fillMaxWidth()) { Text(if (setupRequired) "Create account" else "Unlock") }
+                    if (!setupRequired && biometricAvailable) { Spacer(Modifier.height(10.dp)); OutlinedButton(onClick = onBiometric, Modifier.fillMaxWidth()) { Icon(Icons.Default.Fingerprint, null); Spacer(Modifier.width(8.dp)); Text("Use biometrics") } }
                     error?.let { Spacer(Modifier.height(10.dp)); Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
                 }
             }
@@ -111,8 +94,7 @@ private fun PCDarkiAccountLogin(security: SecurityStore, onUnlocked: () -> Unit,
     }
 }
 
-@Composable
-fun PCDarkiDesktop(security: SecurityStore) {
+@Composable fun PCDarkiDesktop(security: SecurityStore) {
     val context = LocalContext.current
     var startOpen by remember { mutableStateOf(false) }
     var nextId by remember { mutableIntStateOf(1) }
@@ -120,15 +102,8 @@ fun PCDarkiDesktop(security: SecurityStore) {
     val windows = remember { mutableStateListOf<DesktopWindow>() }
     fun openWindow(title: String) {
         val existing = windows.lastOrNull { it.title == title }
-        if (existing != null) {
-            val i = windows.indexOfFirst { it.id == existing.id }
-            windows[i] = existing.copy(minimized = false)
-            activeId = existing.id
-        } else {
-            val id = nextId++
-            windows.add(DesktopWindow(id, title))
-            activeId = id
-        }
+        if (existing != null) { val i = windows.indexOfFirst { it.id == existing.id }; windows[i] = existing.copy(minimized = false); activeId = existing.id }
+        else { val id = nextId++; windows.add(DesktopWindow(id, title)); activeId = id }
     }
     MaterialTheme {
         Surface(Modifier.fillMaxSize()) {
@@ -137,36 +112,19 @@ fun PCDarkiDesktop(security: SecurityStore) {
                     Text("PC-DARKI", color = Color.White.copy(alpha = .9f), fontSize = 20.sp)
                     Text("Signed in as ${security.username}", color = Color.White.copy(alpha = .55f), fontSize = 12.sp)
                     Spacer(Modifier.height(18.dp))
-                    DesktopIcon("Files", Icons.Default.Folder) { openWindow("Files") }
-                    Spacer(Modifier.height(14.dp))
-                    DesktopIcon("Browser", Icons.Default.Language) { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com"))) }
-                    Spacer(Modifier.height(14.dp))
-                    DesktopIcon("Terminal", Icons.Default.Terminal) { openWindow("Terminal") }
-                    Spacer(Modifier.height(14.dp))
-                    DesktopIcon("Text Editor", Icons.Default.TextSnippet) { openWindow("Text Editor") }
-                    Spacer(Modifier.height(14.dp))
-                    DesktopIcon("Image Viewer", Icons.Default.Image) { openWindow("Image Viewer") }
-                    Spacer(Modifier.height(14.dp))
+                    DesktopIcon("Files", Icons.Default.Folder) { openWindow("Files") }; Spacer(Modifier.height(14.dp))
+                    DesktopIcon("Browser", Icons.Default.Language) { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com"))) }; Spacer(Modifier.height(14.dp))
+                    DesktopIcon("Terminal", Icons.Default.Terminal) { openWindow("Terminal") }; Spacer(Modifier.height(14.dp))
+                    DesktopIcon("Text Editor", Icons.Default.TextSnippet) { openWindow("Text Editor") }; Spacer(Modifier.height(14.dp))
+                    DesktopIcon("Image Viewer", Icons.Default.Image) { openWindow("Image Viewer") }; Spacer(Modifier.height(14.dp))
+                    DesktopIcon("App Manager", Icons.Default.Apps) { openWindow("App Manager") }; Spacer(Modifier.height(14.dp))
                     DesktopIcon("Settings", Icons.Default.Settings) { openWindow("Settings") }
                 }
                 windows.filter { !it.minimized }.forEach { window ->
-                    AppWindow(window, window.id == activeId, { activeId = window.id }, {
-                        windows.removeAll { it.id == window.id }
-                        activeId = windows.lastOrNull { !it.minimized }?.id
-                    }, {
-                        val i = windows.indexOfFirst { it.id == window.id }
-                        if (i >= 0) windows[i] = windows[i].copy(minimized = true)
-                        activeId = windows.lastOrNull { !it.minimized && it.id != window.id }?.id
-                    }, security) { dx, dy ->
-                        val i = windows.indexOfFirst { it.id == window.id }
-                        if (i >= 0) windows[i] = windows[i].copy(x = windows[i].x + dx, y = windows[i].y + dy)
-                    }
+                    AppWindow(window, window.id == activeId, { activeId = window.id }, { windows.removeAll { it.id == window.id }; activeId = windows.lastOrNull { !it.minimized }?.id }, { val i = windows.indexOfFirst { it.id == window.id }; if (i >= 0) windows[i] = windows[i].copy(minimized = true); activeId = windows.lastOrNull { !it.minimized && it.id != window.id }?.id }, security) { dx, dy -> val i = windows.indexOfFirst { it.id == window.id }; if (i >= 0) windows[i] = windows[i].copy(x = windows[i].x + dx, y = windows[i].y + dy) }
                 }
                 if (startOpen) StartMenu { name -> startOpen = false; openWindow(name) }
-                Taskbar(windows, activeId, { startOpen = !startOpen }) { id ->
-                    val i = windows.indexOfFirst { it.id == id }
-                    if (i >= 0) { windows[i] = windows[i].copy(minimized = false); activeId = id }
-                }
+                Taskbar(windows, activeId, { startOpen = !startOpen }) { id -> val i = windows.indexOfFirst { it.id == id }; if (i >= 0) { windows[i] = windows[i].copy(minimized = false); activeId = id } }
             }
         }
     }
@@ -174,19 +132,18 @@ fun PCDarkiDesktop(security: SecurityStore) {
 
 @Composable private fun DesktopIcon(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
     Column(Modifier.width(86.dp).clickable(onClick = onClick), horizontalAlignment = Alignment.CenterHorizontally) {
-        Surface(shape = RoundedCornerShape(16.dp), color = Color.White.copy(alpha = .10f)) { Icon(icon, contentDescription = label, modifier = Modifier.padding(14.dp).size(34.dp), tint = Color.White) }
+        Surface(shape = RoundedCornerShape(16.dp), color = Color.White.copy(alpha = .10f)) { Icon(icon, label, Modifier.padding(14.dp).size(34.dp), tint = Color.White) }
         Spacer(Modifier.height(5.dp)); Text(label, color = Color.White, fontSize = 12.sp)
     }
 }
 
 @Composable private fun Taskbar(windows: List<DesktopWindow>, activeId: Int?, onStart: () -> Unit, onWindow: (Int) -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
-        Surface(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp), shape = RoundedCornerShape(22.dp), color = Color(0xE8111521)) {
+        Surface(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp), RoundedCornerShape(22.dp), color = Color(0xE8111521)) {
             Row(Modifier.fillMaxWidth().height(62.dp).padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(modifier = Modifier.size(44.dp).clickable(onClick = onStart), shape = RoundedCornerShape(14.dp), color = Color(0xFF7657F6)) { Box(contentAlignment = Alignment.Center) { Text("D", color = Color.White, fontSize = 20.sp) } }
-                    Spacer(Modifier.width(10.dp))
-                    windows.forEach { w -> Surface(modifier = Modifier.padding(3.dp).clickable { onWindow(w.id) }, shape = RoundedCornerShape(10.dp), color = if (w.id == activeId && !w.minimized) Color(0xFF38304F) else Color.Transparent) { Text(w.title, color = Color.White.copy(alpha = if (w.minimized) .55f else .9f), fontSize = 12.sp, modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) } }
+                    Surface(Modifier.size(44.dp).clickable(onClick = onStart), RoundedCornerShape(14.dp), color = Color(0xFF7657F6)) { Box(contentAlignment = Alignment.Center) { Text("D", color = Color.White, fontSize = 20.sp) } }
+                    Spacer(Modifier.width(10.dp)); windows.forEach { w -> Surface(Modifier.padding(3.dp).clickable { onWindow(w.id) }, RoundedCornerShape(10.dp), color = if (w.id == activeId && !w.minimized) Color(0xFF38304F) else Color.Transparent) { Text(w.title, color = Color.White.copy(alpha = if (w.minimized) .55f else .9f), fontSize = 12.sp, modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) } }
                 }
                 Text(SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()), color = Color.White, fontSize = 14.sp)
             }
@@ -196,28 +153,26 @@ fun PCDarkiDesktop(security: SecurityStore) {
 
 @Composable private fun StartMenu(onOpen: (String) -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomStart) {
-        Surface(modifier = Modifier.padding(start = 24.dp, bottom = 92.dp).width(320.dp), shape = RoundedCornerShape(22.dp), color = Color(0xF21A1E2A)) {
+        Surface(Modifier.padding(start = 24.dp, bottom = 92.dp).width(320.dp), RoundedCornerShape(22.dp), color = Color(0xF21A1E2A)) {
             Column(Modifier.padding(22.dp)) {
                 Text("PC-DARKI", color = Color.White, fontSize = 24.sp); Text("Desktop", color = Color.White.copy(alpha = .55f), fontSize = 12.sp); Spacer(Modifier.height(18.dp))
-                StartItem("Files", Icons.Default.Folder, onOpen); StartItem("Browser", Icons.Default.Language, onOpen); StartItem("Terminal", Icons.Default.Terminal, onOpen); StartItem("Text Editor", Icons.Default.TextSnippet, onOpen); StartItem("Image Viewer", Icons.Default.Image, onOpen); StartItem("Settings", Icons.Default.Settings, onOpen)
+                StartItem("Files", Icons.Default.Folder, onOpen); StartItem("Browser", Icons.Default.Language, onOpen); StartItem("Terminal", Icons.Default.Terminal, onOpen); StartItem("Text Editor", Icons.Default.TextSnippet, onOpen); StartItem("Image Viewer", Icons.Default.Image, onOpen); StartItem("App Manager", Icons.Default.Apps, onOpen); StartItem("Settings", Icons.Default.Settings, onOpen)
             }
         }
     }
 }
 
 @Composable private fun StartItem(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, onOpen: (String) -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable { onOpen(label) }.padding(vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, contentDescription = label, modifier = Modifier.size(24.dp), tint = Color.White.copy(alpha = .9f)); Spacer(Modifier.width(14.dp)); Text(label, color = Color.White, fontSize = 15.sp)
-    }
+    Row(Modifier.fillMaxWidth().clickable { onOpen(label) }.padding(vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) { Icon(icon, label, Modifier.size(24.dp), tint = Color.White.copy(alpha = .9f)); Spacer(Modifier.width(14.dp)); Text(label, color = Color.White, fontSize = 15.sp) }
 }
 
 @Composable private fun AppWindow(window: DesktopWindow, active: Boolean, onFocus: () -> Unit, onClose: () -> Unit, onMinimize: () -> Unit, security: SecurityStore, onMove: (Float, Float) -> Unit) {
     Box(Modifier.fillMaxSize().offset { IntOffset(window.x.roundToInt(), window.y.roundToInt()) }, contentAlignment = Alignment.Center) {
-        Surface(modifier = Modifier.fillMaxWidth(.72f).fillMaxHeight(.68f).clickable(onClick = onFocus), shape = RoundedCornerShape(18.dp), color = if (active) Color(0xF21A1D26) else Color(0xE8161922), tonalElevation = if (active) 12.dp else 4.dp) {
+        Surface(Modifier.fillMaxWidth(.72f).fillMaxHeight(.68f).clickable(onClick = onFocus), RoundedCornerShape(18.dp), color = if (active) Color(0xF21A1D26) else Color(0xE8161922), tonalElevation = if (active) 12.dp else 4.dp) {
             Column(Modifier.fillMaxSize()) {
                 Row(Modifier.fillMaxWidth().height(52.dp).pointerInput(window.id) { detectDragGestures { change, amount -> change.consume(); onMove(amount.x, amount.y) } }.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(window.title, color = Color.White, fontSize = 16.sp)
-                    Row(verticalAlignment = Alignment.CenterVertically) { Text("—", color = Color.White.copy(alpha = .8f), modifier = Modifier.clickable(onClick = onMinimize).padding(horizontal = 10.dp)); Text("✕", color = Color.White, modifier = Modifier.clickable(onClick = onClose).padding(horizontal = 6.dp)) }
+                    Row(verticalAlignment = Alignment.CenterVertically) { Text("—", color = Color.White.copy(alpha = .8f), Modifier.clickable(onClick = onMinimize).padding(horizontal = 10.dp)); Text("✕", color = Color.White, Modifier.clickable(onClick = onClose).padding(horizontal = 6.dp)) }
                 }
                 WindowContent(window.title, security)
             }
@@ -233,23 +188,20 @@ fun PCDarkiDesktop(security: SecurityStore) {
             "Text Editor" -> PCDarkiTextEditor()
             "Terminal" -> PCDarkiTerminal()
             "Image Viewer" -> PCDarkiImageViewer()
-            else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("$title — PC-DARKI v0.2", color = Color.White.copy(alpha = .65f), fontSize = 18.sp) }
+            "App Manager" -> PCDarkiAppManager()
+            else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("$title — PC-DARKI", color = Color.White.copy(alpha = .65f), fontSize = 18.sp) }
         }
     }
 }
 
 @Composable private fun SettingsWindow(security: SecurityStore) {
     var name by remember(security.username) { mutableStateOf(security.username) }
-    var oldPin by remember { mutableStateOf("") }
-    var newPin by remember { mutableStateOf("") }
-    var status by remember { mutableStateOf<String?>(null) }
+    var oldPin by remember { mutableStateOf("") }; var newPin by remember { mutableStateOf("") }; var status by remember { mutableStateOf<String?>(null) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Text("Settings", color = Color.White, fontSize = 24.sp); Text("Account and security", color = Color.White.copy(alpha = .55f), fontSize = 12.sp); Spacer(Modifier.height(20.dp))
-        OutlinedTextField(name, { name = it }, label = { Text("Username") }, singleLine = true, modifier = Modifier.fillMaxWidth()); Spacer(Modifier.height(8.dp))
+        OutlinedTextField(name, { name = it }, label = { Text("Username") }, singleLine = true, Modifier.fillMaxWidth()); Spacer(Modifier.height(8.dp))
         Button(onClick = { try { security.updateUsername(name); status = "Username updated." } catch (e: IllegalArgumentException) { status = e.message ?: "Unable to update username." } }) { Text("Save username") }
-        Spacer(Modifier.height(24.dp))
-        OutlinedTextField(oldPin, { oldPin = it }, label = { Text("Current PIN") }, singleLine = true, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth()); Spacer(Modifier.height(8.dp))
-        OutlinedTextField(newPin, { newPin = it }, label = { Text("New PIN") }, singleLine = true, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth()); Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(24.dp)); OutlinedTextField(oldPin, { oldPin = it }, label = { Text("Current PIN") }, singleLine = true, visualTransformation = PasswordVisualTransformation(), Modifier.fillMaxWidth()); Spacer(Modifier.height(8.dp)); OutlinedTextField(newPin, { newPin = it }, label = { Text("New PIN") }, singleLine = true, visualTransformation = PasswordVisualTransformation(), Modifier.fillMaxWidth()); Spacer(Modifier.height(8.dp))
         Button(onClick = { try { if (security.changePin(oldPin, newPin)) { oldPin = ""; newPin = ""; status = "PIN changed." } else status = "Current PIN is incorrect or new PIN is too short." } catch (e: IllegalArgumentException) { status = e.message ?: "Unable to change PIN." } }) { Text("Change PIN") }
         status?.let { Spacer(Modifier.height(12.dp)); Text(it, color = Color.White.copy(alpha = .75f), fontSize = 12.sp) }
     }
