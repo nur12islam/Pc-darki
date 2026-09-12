@@ -6,11 +6,15 @@ Designed for the Lenovo A101LV / aarch64 setup used by DARKI, while keeping the 
 
 ## PC-DARKI Android App
 
-The native Android app is available as a separate experimental build. It is **not the same thing as the Termux/XFCE desktop** described below.
+The native Android app is available as a separate experimental build.
 
-**Download:** [PC-DARKI Android App (APK)](https://github.com/nur12islam/Pc-darki/releases)
+### 📥 Download APK
 
-> The Android app is experimental and may not be actively maintained. The main project remains the Termux/XFCE implementation.
+**[Download PC-DARKI Android App](https://github.com/nur12islam/Pc-darki/actions/runs/34708122174/artifacts/10302811023)**
+
+> This is a GitHub Actions build artifact (`pc-darki-debug-apk`). GitHub provides it as a ZIP containing the APK. The artifact is temporary and expires on **December 11, 2026**.
+
+The Android app is separate from the Termux/XFCE desktop below.
 
 ## What it sets up
 
