@@ -4,6 +4,14 @@ A lightweight PC-style Linux desktop for Android using **Termux + Termux:X11 + X
 
 Designed for the Lenovo A101LV / aarch64 setup used by DARKI, while keeping the installer reasonably portable across Termux arm64 devices.
 
+## PC-DARKI Android App
+
+The native Android app is available as a separate experimental build. It is **not the same thing as the Termux/XFCE desktop** described below.
+
+**Download:** [PC-DARKI Android App (APK)](https://github.com/nur12islam/Pc-darki/releases)
+
+> The Android app is experimental and may not be actively maintained. The main project remains the Termux/XFCE implementation.
+
 ## What it sets up
 
 - Termux:X11
