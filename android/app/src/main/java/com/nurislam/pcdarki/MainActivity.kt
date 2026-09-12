@@ -229,7 +229,7 @@ fun PCDarkiDesktop(security: SecurityStore) {
             "Files" -> PCDarkiFileManagerHost()
             "Settings" -> SettingsWindow(security)
             "Text Editor" -> PCDarkiTextEditor()
-            "Terminal" -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Terminal — native command backend coming next", color = Color.White.copy(alpha = .7f), fontSize = 18.sp) }
+            "Terminal" -> PCDarkiTerminal()
             else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("$title — PC-DARKI v0.2", color = Color.White.copy(alpha = .65f), fontSize = 18.sp) }
         }
     }
