@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BatteryFull
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.*
@@ -22,10 +24,21 @@ import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
 import java.util.*
 
+private data class TrayNotification(val title: String, val message: String, val time: String)
+
 @Composable
 fun PCDarkiSystemTray(onOpenNotifications: () -> Unit = {}) {
     val context = LocalContext.current
     var expanded by remember { mutableStateOf(false) }
+    var notificationsOpen by remember { mutableStateOf(false) }
+    var notifications by remember {
+        mutableStateOf(
+            listOf(
+                TrayNotification("PC-DARKI", "Desktop session is ready.", "Now"),
+                TrayNotification("Security", "Local account protection is active.", "Now")
+            )
+        )
+    }
     val time = remember { mutableStateOf(SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())) }
 
     LaunchedEffect(Unit) {
@@ -49,7 +62,19 @@ fun PCDarkiSystemTray(onOpenNotifications: () -> Unit = {}) {
                 Spacer(Modifier.width(9.dp))
                 Icon(Icons.Default.BatteryFull, "Battery", tint = Color.White.copy(alpha = .8f), modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(9.dp))
-                Icon(Icons.Default.Notifications, "Notifications", tint = Color.White.copy(alpha = .8f), modifier = Modifier.size(18.dp).clickable { onOpenNotifications() })
+                BadgedBox(badge = {
+                    if (notifications.isNotEmpty()) Badge { Text(notifications.size.toString()) }
+                }) {
+                    Icon(
+                        Icons.Default.Notifications,
+                        "Notifications",
+                        tint = Color.White.copy(alpha = .8f),
+                        modifier = Modifier.size(18.dp).clickable {
+                            notificationsOpen = true
+                            expanded = false
+                        }
+                    )
+                }
                 Spacer(Modifier.width(10.dp))
                 Text(time.value, color = Color.White, fontSize = 13.sp)
             }
@@ -69,13 +94,75 @@ fun PCDarkiSystemTray(onOpenNotifications: () -> Unit = {}) {
                         context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
                         expanded = false
                     }
-                    TrayAction("Notifications", "Open PC-DARKI notifications") {
-                        onOpenNotifications()
+                    TrayAction("Notifications", "Open PC-DARKI notification center") {
+                        notificationsOpen = true
                         expanded = false
                     }
                     TrayAction("Android Settings", "Open system settings") {
                         context.startActivity(Intent(Settings.ACTION_SETTINGS))
                         expanded = false
+                    }
+                }
+            }
+        }
+
+        if (notificationsOpen) {
+            NotificationCenter(
+                notifications = notifications,
+                onDismiss = { notificationsOpen = false },
+                onClear = { notifications = emptyList() }
+            )
+        }
+    }
+}
+
+@Composable
+private fun NotificationCenter(
+    notifications: List<TrayNotification>,
+    onDismiss: () -> Unit,
+    onClear: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.align(Alignment.BottomEnd).offset(y = (-62).dp).width(340.dp).heightIn(max = 430.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = Color(0xF2191D29),
+        tonalElevation = 12.dp
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Notification Center", color = Color.White, fontSize = 19.sp)
+                    Text("${notifications.size} notification${if (notifications.size == 1) "" else "s"}", color = Color.White.copy(alpha = .5f), fontSize = 11.sp)
+                }
+                IconButton(onClick = onClear, enabled = notifications.isNotEmpty()) {
+                    Icon(Icons.Default.DeleteSweep, "Clear all", tint = Color.White.copy(alpha = .75f))
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, "Close", tint = Color.White.copy(alpha = .75f))
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            if (notifications.isEmpty()) {
+                Box(Modifier.fillMaxWidth().height(150.dp), contentAlignment = Alignment.Center) {
+                    Text("You're all caught up.", color = Color.White.copy(alpha = .55f), fontSize = 13.sp)
+                }
+            } else {
+                Column(Modifier.fillMaxWidth()) {
+                    notifications.forEach { notification ->
+                        Surface(
+                            Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color.White.copy(alpha = .06f)
+                        ) {
+                            Column(Modifier.padding(12.dp)) {
+                                Row(Modifier.fillMaxWidth()) {
+                                    Text(notification.title, color = Color.White, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                                    Text(notification.time, color = Color.White.copy(alpha = .4f), fontSize = 10.sp)
+                                }
+                                Spacer(Modifier.height(4.dp))
+                                Text(notification.message, color = Color.White.copy(alpha = .62f), fontSize = 11.sp)
+                            }
+                        }
                     }
                 }
             }
