@@ -3,7 +3,6 @@ package com.nurislam.pcdarki
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,9 +31,7 @@ fun PCDarkiSystemTray(onOpenNotifications: () -> Unit = {}) {
     val notifications by PCDarkiNotificationBus.notifications.collectAsState()
     val time = remember { mutableStateOf(SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())) }
 
-    LaunchedEffect(context) {
-        PCDarkiNotificationBus.initialize(context)
-    }
+    LaunchedEffect(context) { PCDarkiNotificationBus.initialize(context) }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -49,17 +46,12 @@ fun PCDarkiSystemTray(onOpenNotifications: () -> Unit = {}) {
             shape = RoundedCornerShape(14.dp),
             color = Color.White.copy(alpha = .07f)
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(Modifier.padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Wifi, "Network", tint = Color.White.copy(alpha = .8f), modifier = Modifier.size(17.dp))
                 Spacer(Modifier.width(9.dp))
                 Icon(Icons.Default.BatteryFull, "Battery", tint = Color.White.copy(alpha = .8f), modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(9.dp))
-                BadgedBox(badge = {
-                    if (notifications.isNotEmpty()) Badge { Text(notifications.size.toString()) }
-                }) {
+                BadgedBox(badge = { if (notifications.isNotEmpty()) Badge { Text(notifications.size.toString()) } }) {
                     Icon(
                         Icons.Default.Notifications,
                         "Notifications",
@@ -79,25 +71,19 @@ fun PCDarkiSystemTray(onOpenNotifications: () -> Unit = {}) {
         if (expanded) {
             Surface(
                 modifier = Modifier.align(Alignment.BottomEnd).offset(y = (-52).dp).width(260.dp),
-                shape = RoundedCornerShape(18.dp),
-                color = Color(0xF21A1E2A),
-                tonalElevation = 8.dp
+                shape = RoundedCornerShape(18.dp), color = Color(0xF21A1E2A), tonalElevation = 8.dp
             ) {
                 Column(Modifier.padding(16.dp)) {
                     Text("Quick Settings", color = Color.White, fontSize = 18.sp)
                     Spacer(Modifier.height(10.dp))
                     TrayAction("Wi-Fi", "Open Android network settings") {
-                        context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
-                        expanded = false
+                        context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS)); expanded = false
                     }
                     TrayAction("Notifications", "Open PC-DARKI notification center") {
-                        notificationsOpen = true
-                        expanded = false
-                        onOpenNotifications()
+                        notificationsOpen = true; expanded = false; onOpenNotifications()
                     }
                     TrayAction("Android Settings", "Open system settings") {
-                        context.startActivity(Intent(Settings.ACTION_SETTINGS))
-                        expanded = false
+                        context.startActivity(Intent(Settings.ACTION_SETTINGS)); expanded = false
                     }
                 }
             }
@@ -108,7 +94,8 @@ fun PCDarkiSystemTray(onOpenNotifications: () -> Unit = {}) {
                 notifications = notifications,
                 onDismiss = { notificationsOpen = false },
                 onClear = { PCDarkiNotificationBus.clear() },
-                onDismissNotification = { PCDarkiNotificationBus.dismiss(it) }
+                onDismissNotification = { PCDarkiNotificationBus.dismiss(it) },
+                modifier = Modifier.align(Alignment.BottomEnd).offset(y = (-62).dp)
             )
         }
     }
@@ -119,13 +106,12 @@ private fun NotificationCenter(
     notifications: List<PCDarkiNotification>,
     onDismiss: () -> Unit,
     onClear: () -> Unit,
-    onDismissNotification: (Long) -> Unit
+    onDismissNotification: (Long) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = Modifier.align(Alignment.BottomEnd).offset(y = (-62).dp).width(340.dp).heightIn(max = 430.dp),
-        shape = RoundedCornerShape(20.dp),
-        color = Color(0xF2191D29),
-        tonalElevation = 12.dp
+        modifier = modifier.width(340.dp).heightIn(max = 430.dp),
+        shape = RoundedCornerShape(20.dp), color = Color(0xF2191D29), tonalElevation = 12.dp
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -148,11 +134,7 @@ private fun NotificationCenter(
             } else {
                 Column(Modifier.fillMaxWidth()) {
                     notifications.forEach { notification ->
-                        Surface(
-                            Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                            shape = RoundedCornerShape(14.dp),
-                            color = Color.White.copy(alpha = .06f)
-                        ) {
+                        Surface(Modifier.fillMaxWidth().padding(vertical = 4.dp), shape = RoundedCornerShape(14.dp), color = Color.White.copy(alpha = .06f)) {
                             Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.Top) {
                                 Column(Modifier.weight(1f)) {
                                     Row(Modifier.fillMaxWidth()) {
@@ -176,9 +158,7 @@ private fun NotificationCenter(
 
 @Composable
 private fun TrayAction(title: String, subtitle: String, onClick: () -> Unit) {
-    Column(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 9.dp)
-    ) {
+    Column(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 9.dp)) {
         Text(title, color = Color.White, fontSize = 14.sp)
         Text(subtitle, color = Color.White.copy(alpha = .5f), fontSize = 10.sp)
     }
