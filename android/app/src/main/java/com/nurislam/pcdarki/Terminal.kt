@@ -29,6 +29,18 @@ fun PCDarkiTerminal() {
     var running by remember { mutableStateOf(false) }
     val scroll = rememberScrollState()
     val scope = rememberCoroutineScope()
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.White,
+        unfocusedTextColor = Color.White,
+        disabledTextColor = Color.White.copy(alpha = .5f),
+        focusedPlaceholderColor = Color.White.copy(alpha = .5f),
+        unfocusedPlaceholderColor = Color.White.copy(alpha = .5f),
+        focusedBorderColor = Color(0xFFB69CFF),
+        unfocusedBorderColor = Color.White.copy(alpha = .35f),
+        focusedLabelColor = Color(0xFFB69CFF),
+        unfocusedLabelColor = Color.White.copy(alpha = .65f),
+        cursorColor = Color(0xFFB69CFF)
+    )
 
     fun runCommand(raw: String) {
         val command = raw.trim()
@@ -67,7 +79,9 @@ fun PCDarkiTerminal() {
                 },
                 singleLine = true,
                 placeholder = { Text(if (running) "running…" else "command") },
-                enabled = !running
+                enabled = !running,
+                textStyle = LocalTextStyle.current.copy(color = Color.White),
+                colors = fieldColors
             )
             Spacer(Modifier.width(6.dp))
             Button(onClick = { runCommand(input.text) }, enabled = !running) { Text(if (running) "…" else "Run") }
