@@ -145,6 +145,8 @@ fun PCDarkiDesktop(security: SecurityStore) {
                     Spacer(Modifier.height(14.dp))
                     DesktopIcon("Text Editor", Icons.Default.TextSnippet) { openWindow("Text Editor") }
                     Spacer(Modifier.height(14.dp))
+                    DesktopIcon("Image Viewer", Icons.Default.Image) { openWindow("Image Viewer") }
+                    Spacer(Modifier.height(14.dp))
                     DesktopIcon("Settings", Icons.Default.Settings) { openWindow("Settings") }
                 }
                 windows.filter { !it.minimized }.forEach { window ->
@@ -197,7 +199,7 @@ fun PCDarkiDesktop(security: SecurityStore) {
         Surface(modifier = Modifier.padding(start = 24.dp, bottom = 92.dp).width(320.dp), shape = RoundedCornerShape(22.dp), color = Color(0xF21A1E2A)) {
             Column(Modifier.padding(22.dp)) {
                 Text("PC-DARKI", color = Color.White, fontSize = 24.sp); Text("Desktop", color = Color.White.copy(alpha = .55f), fontSize = 12.sp); Spacer(Modifier.height(18.dp))
-                StartItem("Files", Icons.Default.Folder, onOpen); StartItem("Browser", Icons.Default.Language, onOpen); StartItem("Terminal", Icons.Default.Terminal, onOpen); StartItem("Text Editor", Icons.Default.TextSnippet, onOpen); StartItem("Settings", Icons.Default.Settings, onOpen)
+                StartItem("Files", Icons.Default.Folder, onOpen); StartItem("Browser", Icons.Default.Language, onOpen); StartItem("Terminal", Icons.Default.Terminal, onOpen); StartItem("Text Editor", Icons.Default.TextSnippet, onOpen); StartItem("Image Viewer", Icons.Default.Image, onOpen); StartItem("Settings", Icons.Default.Settings, onOpen)
             }
         }
     }
@@ -230,6 +232,7 @@ fun PCDarkiDesktop(security: SecurityStore) {
             "Settings" -> SettingsWindow(security)
             "Text Editor" -> PCDarkiTextEditor()
             "Terminal" -> PCDarkiTerminal()
+            "Image Viewer" -> PCDarkiImageViewer()
             else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("$title — PC-DARKI v0.2", color = Color.White.copy(alpha = .65f), fontSize = 18.sp) }
         }
     }
@@ -247,7 +250,7 @@ fun PCDarkiDesktop(security: SecurityStore) {
         Spacer(Modifier.height(24.dp))
         OutlinedTextField(oldPin, { oldPin = it }, label = { Text("Current PIN") }, singleLine = true, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth()); Spacer(Modifier.height(8.dp))
         OutlinedTextField(newPin, { newPin = it }, label = { Text("New PIN") }, singleLine = true, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth()); Spacer(Modifier.height(8.dp))
-        Button(onClick = { try { security.changePin(oldPin, newPin); oldPin = ""; newPin = ""; status = "PIN changed." } catch (e: IllegalArgumentException) { status = e.message ?: "Unable to change PIN." } }) { Text("Change PIN") }
+        Button(onClick = { try { if (security.changePin(oldPin, newPin)) { oldPin = ""; newPin = ""; status = "PIN changed." } else status = "Current PIN is incorrect or new PIN is too short." } catch (e: IllegalArgumentException) { status = e.message ?: "Unable to change PIN." } }) { Text("Change PIN") }
         status?.let { Spacer(Modifier.height(12.dp)); Text(it, color = Color.White.copy(alpha = .75f), fontSize = 12.sp) }
     }
 }
