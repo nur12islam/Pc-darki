@@ -60,7 +60,7 @@ class MainActivity : FragmentActivity() {
     val context = LocalContext.current
     val authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.BIOMETRIC_WEAK
     val biometricAvailable = remember { BiometricManager.from(context).canAuthenticate(authenticators) == BiometricManager.BIOMETRIC_SUCCESS }
-    MaterialTheme {
+    MaterialTheme(colorScheme = darkColorScheme()) {
         Box(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(Color(0xFF080C16), Color(0xFF21183D), Color(0xFF0B1020)))), contentAlignment = Alignment.Center) {
             Surface(Modifier.width(390.dp), shape = RoundedCornerShape(28.dp), color = Color(0xEE171B27), tonalElevation = 10.dp) {
                 Column(Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -103,7 +103,7 @@ class MainActivity : FragmentActivity() {
         if (existing != null) { val i = windows.indexOfFirst { it.id == existing.id }; windows[i] = existing.copy(minimized = false); activeId = existing.id }
         else { val id = nextId++; windows.add(DesktopWindow(id, title)); activeId = id }
     }
-    MaterialTheme {
+    MaterialTheme(colorScheme = darkColorScheme()) {
         Surface(Modifier.fillMaxSize()) {
             Box(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(Color(0xFF0B1020), Color(0xFF21183D), Color(0xFF080C16))))) {
                 Column(Modifier.fillMaxSize().padding(24.dp)) {
