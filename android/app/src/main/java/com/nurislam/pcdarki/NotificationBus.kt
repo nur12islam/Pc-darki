@@ -1,5 +1,6 @@
 package com.nurislam.pcdarki
 
+import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,20 +23,38 @@ object PCDarkiNotificationBus {
     private val _notifications = MutableStateFlow<List<PCDarkiNotification>>(emptyList())
     val notifications: StateFlow<List<PCDarkiNotification>> = _notifications.asStateFlow()
 
+    private var store: PCDarkiNotificationStore? = null
+
+    @Synchronized
+    fun initialize(context: Context) {
+        if (store != null) return
+        store = PCDarkiNotificationStore(context.applicationContext)
+        _notifications.value = store?.load().orEmpty().take(50)
+    }
+
+    private fun persist(items: List<PCDarkiNotification>) {
+        store?.save(items)
+    }
+
     fun post(title: String, message: String) {
         val item = PCDarkiNotification(
             id = System.nanoTime(),
             title = title.take(80),
             message = message.take(300)
         )
-        _notifications.value = listOf(item) + _notifications.value.take(49)
+        val updated = listOf(item) + _notifications.value.take(49)
+        _notifications.value = updated
+        persist(updated)
     }
 
     fun dismiss(id: Long) {
-        _notifications.value = _notifications.value.filterNot { it.id == id }
+        val updated = _notifications.value.filterNot { it.id == id }
+        _notifications.value = updated
+        persist(updated)
     }
 
     fun clear() {
         _notifications.value = emptyList()
+        store?.clear()
     }
 }
