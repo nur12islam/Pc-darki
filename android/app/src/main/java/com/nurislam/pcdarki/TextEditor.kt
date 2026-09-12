@@ -27,6 +27,17 @@ fun PCDarkiTextEditor() {
     var dirty by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("Ready") }
 
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+        disabledTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = .5f),
+        focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        focusedLabelColor = MaterialTheme.colorScheme.primary,
+        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        cursorColor = MaterialTheme.colorScheme.primary
+    )
+
     val openLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         fileUri = uri
@@ -77,10 +88,10 @@ fun PCDarkiTextEditor() {
             onValueChange = { text = it; dirty = true },
             modifier = Modifier.fillMaxWidth().weight(1f),
             placeholder = { Text("Start typing…") },
-            textStyle = MaterialTheme.typography.bodyLarge,
-            colors = OutlinedTextFieldDefaults.colors()
+            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+            colors = fieldColors
         )
         Spacer(Modifier.height(6.dp))
-        Text("${text.text.length} characters  •  $status", style = MaterialTheme.typography.labelSmall)
+        Text("${text.text.length} characters  •  $status", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
