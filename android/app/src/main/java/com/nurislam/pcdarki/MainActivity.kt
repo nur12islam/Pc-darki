@@ -143,6 +143,8 @@ fun PCDarkiDesktop(security: SecurityStore) {
                     Spacer(Modifier.height(14.dp))
                     DesktopIcon("Terminal", Icons.Default.Terminal) { openWindow("Terminal") }
                     Spacer(Modifier.height(14.dp))
+                    DesktopIcon("Text Editor", Icons.Default.TextSnippet) { openWindow("Text Editor") }
+                    Spacer(Modifier.height(14.dp))
                     DesktopIcon("Settings", Icons.Default.Settings) { openWindow("Settings") }
                 }
                 windows.filter { !it.minimized }.forEach { window ->
@@ -226,7 +228,7 @@ fun PCDarkiDesktop(security: SecurityStore) {
         when (title) {
             "Files" -> PCDarkiFileManagerHost()
             "Settings" -> SettingsWindow(security)
-            "Text Editor" -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Text Editor — next module", color = Color.White.copy(alpha = .7f), fontSize = 18.sp) }
+            "Text Editor" -> PCDarkiTextEditor()
             "Terminal" -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Terminal — native command backend coming next", color = Color.White.copy(alpha = .7f), fontSize = 18.sp) }
             else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("$title — PC-DARKI v0.2", color = Color.White.copy(alpha = .65f), fontSize = 18.sp) }
         }
@@ -245,7 +247,7 @@ fun PCDarkiDesktop(security: SecurityStore) {
         Spacer(Modifier.height(24.dp))
         OutlinedTextField(oldPin, { oldPin = it }, label = { Text("Current PIN") }, singleLine = true, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth()); Spacer(Modifier.height(8.dp))
         OutlinedTextField(newPin, { newPin = it }, label = { Text("New PIN") }, singleLine = true, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth()); Spacer(Modifier.height(8.dp))
-        Button(onClick = { status = if (security.changePin(oldPin, newPin)) { oldPin = ""; newPin = ""; "PIN changed successfully." } else "Current PIN is incorrect or new PIN is too short." }) { Text("Change PIN") }
-        status?.let { Spacer(Modifier.height(12.dp)); Text(it, color = Color.White.copy(alpha = .8f), fontSize = 12.sp) }
+        Button(onClick = { try { security.changePin(oldPin, newPin); oldPin = ""; newPin = ""; status = "PIN changed." } catch (e: IllegalArgumentException) { status = e.message ?: "Unable to change PIN." } }) { Text("Change PIN") }
+        status?.let { Spacer(Modifier.height(12.dp)); Text(it, color = Color.White.copy(alpha = .75f), fontSize = 12.sp) }
     }
 }
