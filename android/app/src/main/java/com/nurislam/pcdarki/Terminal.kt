@@ -10,6 +10,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
@@ -57,7 +60,10 @@ fun PCDarkiTerminal() {
                 value = input,
                 onValueChange = { input = it },
                 modifier = Modifier.weight(1f).onKeyEvent { event ->
-                    if (event.key == Key.Enter) { runCommand(input.text); true } else false
+                    if (event.type == KeyEventType.KeyUp && event.key == Key.Enter) {
+                        runCommand(input.text)
+                        true
+                    } else false
                 },
                 singleLine = true,
                 placeholder = { Text(if (running) "running…" else "command") },
@@ -75,11 +81,15 @@ private fun executeShell(command: String): String {
         val process = ProcessBuilder("/system/bin/sh", "-c", command)
             .redirectErrorStream(true)
             .start()
-        val result = withTimeoutOrNull(10_000) {
-            val text = process.inputStream.bufferedReader().use { it.readText() }
-            val exitCode = process.waitFor()
-            if (text.isBlank()) "(exit $exitCode)" else text.trimEnd()
-        }
+        val result = runCatching {
+            kotlinx.coroutines.runBlocking {
+                withTimeoutOrNull(10_000) {
+                    val text = process.inputStream.bufferedReader().use { it.readText() }
+                    val exitCode = process.waitFor()
+                    if (text.isBlank()) "(exit $exitCode)" else text.trimEnd()
+                }
+            }
+        }.getOrNull()
         result ?: run {
             process.destroyForcibly()
             "Process timed out after 10 seconds."
